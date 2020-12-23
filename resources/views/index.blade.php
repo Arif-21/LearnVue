@@ -10,14 +10,17 @@
 
         <div id="app">
 
-            <input type="text" v-model="newUser">
-            <button v-on:click="addUser">Add</button>
+            <form>
+                <input type="text" v-model="form.name">
+                <button @click.prevent="add" v-show="!updateSubmit">Add</button>
+                <button @click.prevent="update" v-show="updateSubmit">Update</button>
+            </form>
         
             <ul>
                 <li v-for="(user , index) in users">
                     <span>@{{ user.name }}</span>
-                    <button v-on:click="updateUser(user)">edit</button>
-                    <button v-on:click="removeUser(index, user)">delete</button>
+                    <button v-on:click="edit(user, index)">edit</button>
+                    <button>delete</button>
                 </li>
             </ul>
     
@@ -26,42 +29,45 @@
         <script src="{{ url('/vue/vue-script.js') }}"></script>
         <script src="{{ url('/vue/vue-resource.js') }}"></script>
         <script>
-            new Vue({
+            var app = new Vue({
                 el: "#app",
                 data: {
-                    newUser: '',
-                    editUser: '',
                     users: [],
+                    updateSubmit: false,
+                    form: {
+                        'name': '',
+                    },
+                    selectedUserId: null,
                 },
                 methods: {
-                    addUser: function() {
-                        let userInput = this.newUser.trim();
-                        if(userInput)
-                        {
+                    add() {
+                        let userInput = this.form.name.trim();
+                        if(userInput){
                             this.$http.post('/api/user', {name: userInput}).then(response => {
-                                this.users.unshift( { name : userInput});
-                                this.newUser = '';
+                                this.users.unshift({ name : userInput })
+                                this.form = {}
                             });
                         }
                     },
-                    removeUser: function(index, user) {
-                        this.$http.post('/api/user/delete/' + user.id).then(response => {
-                            this.users.splice(index, 1);
-                            return alert('yakin ingin hapus?');  
+                    edit(user , index) {
+                        this.$http.post('/api/user/update/' + user.id).then(response => {
+                            this.selectedUserId = this.index
+                            this.updateSubmit = true
+                            this.form.name = user.name    
                         });
                     },
-                    updateUser: function(user) {
-                        this.$http.post('/api/user/update/' + user.id).then(response => {    
-                            user.name = user.name;
-                            console.log(user.name);
-                        });
+                    update() {
+                        this.users[this.selectedUserId].name = this.form.name
+                        this.form = {}
+                        this.updateSubmit = false
+                        this.selectedUserId = null 
                     },
                 },
                 mounted: function() {
                     this.$http.get('/api/user').then(response => {
-                        let result = response.body.data;
-                        this.users = result;
-                    });
+                        let result = response.body.data
+                        this.users = result
+                    })
                 },
             });
         </script>
